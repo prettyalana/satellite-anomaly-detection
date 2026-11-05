@@ -1,0 +1,8 @@
+satellite,wheel_saturated_%,low_voltage_%,gyro_above_2_%
+alpha,1.81,0.0,0.43
+bravo,2.8,20.51,0.71
+charlie,1.55,0.0,0.17
+delta,3.05,0.0,5.88
+echo,3.13,35.71,1.01
+foxtrot,1.28,0.0,0.3
+golf,2.86,1.47,0.85

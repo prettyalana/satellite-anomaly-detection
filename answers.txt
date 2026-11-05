@@ -1,0 +1,83 @@
+Alana Edwards Space Systems Engineer: Anomaly Detection
+
+QUESTION 1: PLOTS
+All plots are in the plots/ folder.
+a. One plot per satellite with all telemetry channels: <satellite>_telemetry.png
+b. One plot per telemetry channel with all satellites: <channel>_all_satellites.png
+c. Beta angle of all satellites: beta_sun_angles.png
+
+QUESTION 2: PERCENTAGE OF AVAILABLE TELEMETRY POINTS
+
+satellite   wheel saturated %   low voltage %   gyro above 2 deg/s %
+alpha              1.81              0.00              0.43
+bravo              2.80             20.51              0.71
+charlie            1.55              0.00              0.17
+delta              3.05              0.00              5.88
+echo               3.13             35.71              1.01
+foxtrot            1.28              0.00              0.30
+golf               2.86              1.47              0.85
+
+QUESTION 3a: FLOCKS
+I found three flocks by plotting the beta angle for every satellite. At first some
+satellites seemed to be missing from the plot, and I realized their lines were hiding
+behind each other because their values are almost the same. Satellites launched
+together share the same orbit, so their beta angles line up.
+- Flock 1: alpha, charlie, foxtrot
+- Flock 2: bravo, echo, golf
+- Flock 3: delta. It starts close to flock 2, but its line pulls away over the year
+  (from about 0.3 to about 2.0 degrees apart from echo), so it is in a different
+  orbit and was likely launched separately.
+
+QUESTION 3b: DANGEROUS ANOMALIES
+1. Delta can't control its rotation. In delta's plot, wheel_y and wheel_z stay at 0
+   the whole time, so only 2 of its 4 wheels are working. The other wheels hit
+   saturation in clusters, and on June 2 gyro_z moves steadily past -2 deg/s toward
+   -4 deg/s, which means delta is spinning and can't stop. Its gyro rates are above
+   2 deg/s in either direction for 5.88% of points, more than 5 times any other
+   satellite. A spinning satellite can't point its camera, solar panels, or antenna.
+
+2. Bravo, echo, and golf have low voltage. In bravo's plot, the low voltage flag
+   wasn't a flat line like alpha's. It was a series of spikes that got more frequent
+   over time. Echo's flag started at 0, switched on and off, and then stayed on, and
+   its data stops on June 1. Golf showed a milder version. Their bus voltage also
+   stops recovering to about 8.3 V each orbit. The flag is active 35.71% (echo),
+   20.51% (bravo), and 1.47% (golf) of the time, and each time it shuts off hardware
+   like the camera. Since all three are in the same flock, I think the cause could be
+   something they share. One possibility is their orbit: flock 2's beta angle is
+   closer to 0 than flock 1's, which means longer time in Earth's shadow and less
+   time to recharge.
+
+QUESTION 4: ANOMALY FUNCTIONS
+Each function takes one telemetry channel and returns True or False.
+- is_stuck_at_zero: True if every reading is 0. It finds delta's dead wheels
+  (wheel_y and wheel_z) and delta's bus voltage channel.
+- has_low_voltage_events: True if the low voltage flag is ever on. It finds bravo,
+  echo, and golf.
+- is_spinning_out_of_control: True if a gyro rate stays above 2 deg/s for 30 minutes
+  in a row. It finds delta's gyro_z.
+
+I ran every function on all 7 satellites. Alpha, charlie, and foxtrot return False
+for every check, so there are no false positives.
+
+My first spin check averaged readings over 10 minutes, and it wrongly flagged echo
+and golf. The gyro data seems to be recorded more often during turns, so short turns
+outweighed the quiet periods. I fixed it by taking the median rate for each minute
+first, so every minute counts the same.
+
+ASSUMPTIONS AND DATA NOTES
+- Seven of the csv files have column names on the first line. beta_sun_deg.csv was the
+  only one with a different layout (one column per satellite), so I loaded it
+  separately from the telemetry files.
+- Sensors report at different times, so for each check I counted only the rows where
+  that check's sensors have a reading.
+- A wheel counts as saturated at 8000 rpm or more, and a gyro counts at more than
+  2 deg/s, in either direction.
+- Timestamps are Unix milliseconds, which I converted to UTC.
+- Delta's bus voltage is flat at 0 the whole time, but its low voltage flag never
+  turns on and its wheels and gyros keep working. So I think the voltage sensor is
+  broken, not the power itself.
+- Foxtrot has one bus voltage reading of about 2 V, but the low voltage flag didn't
+  turn on and the readings before and after are normal, so it is likely a bad reading.
+- Straight lines in some plots are gaps in the data, not real measurements.
+- The beta file covers June 2018 to June 2019, and the telemetry covers May 30 to
+  June 2, 2019. The files use "alpha" while the instructions say "alfa."
